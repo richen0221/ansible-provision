@@ -1,0 +1,28 @@
+---
+# update the CentOS 7 local Repo
+- name: Backup the Base repo
+  command: mv /etc/yum.repos.d/CentOS-Base.repo  /etc/yum.repos.d/CentOS-Base.repo.orig
+
+- name: create Base repo
+  template: src=provision/templates/CentOS-Base.repo.j2 dest=/etc/yum.repos.d/CentOS-Base.repo
+  
+- name: Create EPEL repo
+  template: src=provision/templates/epel.repo.j2 dest=/etc/yum.repos.d/epel.repo
+
+- name: Create Remi repo
+  template: src=provision/templates/remi.repo.j2 dest=/etc/yum.repos.d/remi.repo
+
+- name: Create Remi-safe repo
+  template: src=provision/templates/remi-safe.repo.j2 dest=/etc/yum.repos.d/remi-safe.repo
+
+- name: Create Remi-php70 repo
+  template: src=provision/templates/remi-php70.repo.j2 dest=/etc/yum.repos.d/remi-php70.repo
+  
+- name: Create Remi-php71 repo
+  template: src=provision/templates/remi-php71.repo.j2 dest=/etc/yum.repos.d/remi-php71.repo
+
+- name: Create Remi-php72 repo
+  template: src=provision/templates/remi-php72.repo.j2 dest=/etc/yum.repos.d/remi-php72.repo
+
+- name: Create MariaDB 10 repo
+  template: src=provision/templates/MariaDB.repo.j2 dest=/etc/yum.repos.d/MariaDB.repo

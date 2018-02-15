@@ -1,0 +1,137 @@
+---
+- hosts: server-ip
+  remote_user: root
+
+  vars:
+    # Create a secondary, non-root user. It will disable root login via SSH when it created.
+    # ANSIBLE_USER_NAME: secondary_user
+    
+    # Edit /home/user/.ssh/id_rsa.pub where is the public key's location. use "ssh-keygen -t rsa" to generate it
+    # ANSIBLE_KEY: "{{ lookup('file', '/home/user/.ssh/id_rsa.pub') }}"
+    
+    # If in need, copy the /etc/shadow password hash and uncomment the variable.
+    # ANSIBLE_USER_PASSWORD:
+    
+    # root mail alias in /etc/aliases and for checkhd.sh script alert mail.
+    # ROOT_MAIL: admin@example.com.tw
+    
+    # Uncomment to use the local repo. Modify the provision/tasks/localrepo.yml and create the necessary repos in provision/tasks/templates.
+    # USE_LOCAL_REPO: your-yum-server.com
+  
+  tasks:
+   
+  - name: Setting CentOS 7 system
+    block:
+      - name: Install Python
+        yum: name=python,libselinux-python state=present
+      
+      - name: disable the SELinux
+        selinux: state=disabled
+        when: 
+            - ansible_virtualization_type != "lxc"
+      
+      - name: disable firewalld
+        service: name=firewalld state=stopped enabled=no
+        ignore_errors: true
+  
+      - name: Make rc.local can be executed
+        file: path=/etc/rc.d/rc.local mode=0755
+        
+      - name: Check the local repo option
+        import_tasks: provision/tasks/localrepo.yml
+        when: USE_LOCAL_REPO is defined
+      
+      - name: EPEL repo installation
+        yum: name={{ item }} state=present
+        with_flattened:
+          - epel-release
+        when: USE_LOCAL_REPO is not defined
+  
+      - name: Install Open VM Tools
+        yum: name=open-vm-tools state=present
+        when:
+         - ansible_virtualization_type == "VMware" 
+  
+      - name: Basic function installation
+        yum: name={{ item }} state=present
+        with_flattened:
+          - mailx
+          - postfix
+          - openssh-clients
+          - rsync
+          - xinetd
+          - ftp
+          - man
+          - bash-completion
+          - setuptool
+          - vim-enhanced
+          - screen
+          - telnet
+          - net-tools
+          - wget
+          - mlocate
+          - bind-utils
+          - glances
+          - iptables-services
+          - lsof
+          - tmux
+          - ntpdate
+          - zip
+          - unzip
+          - p7zip
+          - yum-utils
+          - device-mapper-persistent-data
+          - lvm2
+          - smartmontools
+          - git
+          - ncdu
+  
+      - name: Update System
+        yum: name=* state=latest
+  
+      - name: setup mail aliases
+        lineinfile: dest=/etc/aliases line="root{{ ':' }} {{ ROOT_MAIL }}"
+        
+      - name: Create user
+        block:
+        - name: "Create a secondary, non-root user"
+          user: name={{ ANSIBLE_USER_NAME }}
+              shell=/bin/bash
+              
+        - name: "Add a password for secondary, non-root user"
+          user: name={{ ANSIBLE_USER_NAME }}
+                password="{{ ANSIBLE_USER_PASSWORD }}"
+          when: ANSIBLE_USER_PASSWORD is defined
+                
+        - name: Add remote authorized key to allow future passwordless logins
+          authorized_key: user={{ ANSIBLE_USER_NAME }} key="{{ ANSIBLE_KEY }}"
+          when: ANSIBLE_KEY is defined
+        
+        - name: Add the user to sudoers
+          lineinfile: 'dest=/etc/sudoers
+                      regexp="{{ ANSIBLE_USER_NAME }} ALL"
+                      line="{{ ANSIBLE_USER_NAME }} ALL=(ALL) NOPASSWD: ALL"
+                      state=present'
+                      
+        - name: disable SSH Root Login
+          lineinfile: dest=/etc/ssh/sshd_config line="PermitRootLogin no"
+      
+        when: ANSIBLE_USER_NAME is defined and ( ANSIBLE_KEY is defined or ANSIBLE_USER_PASSWORD is defined )
+      
+      
+      - name: disable ssh DNS
+        lineinfile: dest=/etc/ssh/sshd_config line="UseDNS no"
+        
+      - name: restart sshd  
+        service: name=sshd state=restarted
+        
+      - name: setup iptable  
+        import_tasks: provision/tasks/c7fw.yml
+        tags: firewall
+    
+      - name: setup cron job
+        import_tasks: provision/tasks/cronjob.yml
+        tags: cronjob
+    
+    when:
+        - ansible_distribution_major_version == "7"

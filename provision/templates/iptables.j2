@@ -1,0 +1,27 @@
+# Firewall configuration written by system-config-firewall
+# Manual customization of this file is not recommended.
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+-A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+# For FTP server command port
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 21 -j ACCEPT
+# For FTP server data transmission port
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 20 -j ACCEPT
+# For FTP server ftp pasv mode range
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 65400:65420 -j ACCEPT
+# For Web Server
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 80 -j ACCEPT
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 443 -j ACCEPT
+-A INPUT -p icmp -j ACCEPT
+-A INPUT -i lo -j ACCEPT
+# Internal network
+-A INPUT -s 10.0.0.0/8 -j ACCEPT
+-A INPUT -s 172.16.0.0/16 -j ACCEPT
+-A INPUT -s 192.168.0.0/24 -j ACCEPT
+# For SSH server
+# -A INPUT -m state --state NEW -m tcp -p tcp --dport 22 -j ACCEPT
+-A INPUT -j DROP
+-A FORWARD -j REJECT --reject-with icmp-host-prohibited
+COMMIT

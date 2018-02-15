@@ -1,0 +1,15 @@
+---
+# CentOS 7 cron jobs setup
+#
+- name: create cron job scripts folder
+  file: path=/root/scripts state=directory mode=0755
+
+- name: create checkHDD script
+  template: src=provision/templates/checkhd.sh.j2 dest=/root/scripts/checkhd.sh owner=root group=root mode=0755
+
+- name: create checkhdd cron job for every 5 minutes
+  cron: name="checkHDD usage" minute="*/5" user="root" job="/root/scripts/checkhd.sh"
+  
+- name: ntp update cronjob every 15 minutes
+  cron: name="NTP update" minute="*/15"  user="root" job="/sbin/ntpdate -s time.stdtime.gov.tw"
+       

@@ -1,0 +1,11 @@
+---
+# CentOS 7 iptables setup
+#
+- name: enable iptables
+  service: name=iptables state=started enabled=yes
+        
+- name: Create iptasbles file
+  template: src=provision/templates/iptables.j2 dest=/etc/sysconfig/iptables
+
+- name: restart iptables
+  service: name=iptables state=restarted
